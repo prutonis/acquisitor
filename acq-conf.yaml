@@ -1,0 +1,98 @@
+hardware:
+# ADC has 4 inputs:
+#   - 0: voltage on the Shunt resistor
+#   - 1: voltage on the Pressure sensor (50 Ohm resistor)
+#   - 2: voltage on the battery 24 V input (voltage divider)
+#   - 3: voltage on the battery 12 V input (voltage divider)
+  adc:
+    #name: adc0
+    name: fake
+    type: ads1115
+    i2caddr: 0x48
+    i2cbus: 2
+    inputs:
+      - name: shunt
+        channel: 0
+        gain: 4 # 0.512V
+        conv:
+          unit: mA
+          factor: 0.3125
+      - name: pressure
+        channel: 1
+        gain: 2 # 2.048V
+        conv:
+          unit: bar
+          factor: 0.1
+      - name: battery_24v
+        channel: 2
+        gain: 2 # 2.048V
+        conv:
+          unit: V
+          factor: 0.001
+      - name: battery_12v
+        channel: 3
+        gain: 2 # 2.048V
+        conv:
+          unit: V
+          factor: 1.0
+
+
+# // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V
+# // PGA_4_096 = 1 // Full Scale Range = +/- 4.096V
+# // PGA_2_048 = 2 // Full Scale Range = +/- 2.048V
+# // PGA_1_024 = 3 // Full Scale Range = +/- 1.024V
+# // PGA_0_512 = 4 // Full Scale Range = +/- 0.512V
+# // PGA_0_256 = 5 // Full Scale Range = +/- 0.128V
+
+
+telemetry:
+  server:
+    host: tb1.morosanu.io
+    port: 1883
+    user: xbdr481fgsessge0cv2m
+  collectors:
+    - name: system
+      enabled: true
+      interval: 5
+      keys:
+        - name: uptime
+          unit: s
+          factor: 1
+          source: uptime
+        - name: load
+          unit: 1
+          factor: 1
+          source: load
+        - name: temp
+          unit: C
+          factor: 1
+          source: temp
+        - name: mem
+          unit: B
+          factor: 1
+          source: mem
+        - name: disk
+          unit: B
+          factor: 1
+          source: disk
+    - name: adc
+      enabled: false
+      interval: 5
+      keys:
+        - name: current
+          unit: mA
+          factor: 0.3125
+          source: shunt
+        # - name: pressure
+        #   unit: bar
+        #   factor: 0.1
+        #   source: pressure
+        - name: voltage
+          unit: V
+          factor: 0.001
+          source: battery_24v
+        # - name: voltage2
+        #   unit: V
+        #   factor: 1
+        #   source: battery_12v
+
