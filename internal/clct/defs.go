@@ -3,6 +3,7 @@ package clct
 import (
 	"fmt"
 
+	"github.com/prutonis/acquisitor/internal/cfg"
 	"github.com/spf13/cast"
 )
 
@@ -27,24 +28,25 @@ type TelemetryData struct {
 }
 
 type ITelemetryCollector interface {
+	Name() string
 	Init()
 	Collect()
 }
 
-type TelemetryCollector struct {
+type Collector struct {
 	Collectors []ITelemetryCollector
 }
 
-var telemetryCollector *TelemetryCollector = &TelemetryCollector{Collectors: make([]ITelemetryCollector, 0)}
+var collector *Collector = &Collector{Collectors: make([]ITelemetryCollector, 0)}
 var telemetryData *TelemetryData = &TelemetryData{Data: make(map[string]*TelemetryChannel)}
 
-func (tc *TelemetryCollector) Init() {
+func (tc *Collector) Init() {
 	for _, c := range tc.Collectors {
 		c.Init()
 	}
 }
 
-func (tc *TelemetryCollector) Collect() {
+func (tc *Collector) Collect() {
 	for _, c := range tc.Collectors {
 		c.Collect()
 	}
@@ -53,6 +55,22 @@ func (tc *TelemetryCollector) Collect() {
 func (td *TelemetryData) Init(name string, unit string, ttype int, median bool) {
 	tc := &TelemetryChannel{Name: name, Unit: unit, Type: ttype, Count: 0, Median: median}
 	td.Data[name] = tc
+}
+
+func (t *TelemetryData) ResolveChannel(name string) *TelemetryChannel {
+	tc, ok := t.Data[name]
+	if !ok {
+		return nil
+	}
+	return tc
+}
+func (t *TelemetryData) Convert(rawVal int16, key cfg.CollectorKey) float64 {
+	return float64(rawVal) * float64(key.Factor)
+}
+
+func (t *TelemetryData) AddRawValue(name string, rawValue int16, cfg cfg.CollectorKey) {
+	var converted = t.Convert(rawValue, cfg)
+	t.AddValue(name, converted)
 }
 
 func (t *TelemetryData) AddValue(name string, value interface{}) {

@@ -97,7 +97,7 @@ func (ads *Ads) SetConfig(config *cfg.AdcInput) error {
 	if err != nil {
 		return err
 	}
-	err = ads.Sensor.SetMuxMode(4 + config.Channel)
+	err = ads.Sensor.SetMuxMode(4 + uint16(config.Channel))
 	if err != nil {
 		return err
 	}

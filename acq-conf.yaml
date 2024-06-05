@@ -14,28 +14,15 @@ hardware:
       - name: shunt
         channel: 0
         gain: 4 # 0.512V
-        conv:
-          unit: mA
-          factor: 0.3125
       - name: pressure
         channel: 1
         gain: 2 # 2.048V
-        conv:
-          unit: bar
-          factor: 0.1
       - name: battery_24v
         channel: 2
         gain: 2 # 2.048V
-        conv:
-          unit: V
-          factor: 0.001
       - name: battery_12v
         channel: 3
         gain: 2 # 2.048V
-        conv:
-          unit: V
-          factor: 1.0
-
 
 # // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V
 # // PGA_4_096 = 1 // Full Scale Range = +/- 4.096V
@@ -49,11 +36,12 @@ telemetry:
   server:
     host: tb1.morosanu.io
     port: 1883
-    user: xbdr481fgsessge0cv2m
+    user: wl82zahruwh6e6kmnkiy
+    topic: v1/telemetry
   collectors:
     - name: system
       enabled: true
-      interval: 5
+      interval: 1
       keys:
         - name: uptime
           unit: s
@@ -63,10 +51,10 @@ telemetry:
           unit: 1
           factor: 1
           source: load
-        - name: temp
-          unit: C
-          factor: 1
-          source: temp
+        # - name: temp
+        #   unit: C
+        #   factor: 1
+        #   source: temp
         - name: mem
           unit: B
           factor: 1
@@ -82,6 +70,7 @@ telemetry:
         - name: current
           unit: mA
           factor: 0.3125
+          median: true
           source: shunt
         # - name: pressure
         #   unit: bar
@@ -90,9 +79,28 @@ telemetry:
         - name: voltage
           unit: V
           factor: 0.001
+          median: true
           source: battery_24v
         # - name: voltage2
         #   unit: V
         #   factor: 1
         #   source: battery_12v
+  pusher:
+    enabled: true
+    interval: 5
+    keys:
+      - name: m_current
+        source: current
+      - name: m_voltage
+        source: voltage
+      - name: m_temp
+        source: temp
+      - name: m_load
+        source: load
+      - name: m_mem
+        source: mem
+      - name: m_disk
+        source: disk
+      - name: m_uptime
+        source: uptime
 

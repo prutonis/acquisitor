@@ -1,6 +1,7 @@
 package clct
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -14,58 +15,88 @@ var config = &cfg.AcqConfig
 var mqttClient mqtt.Client
 
 func Init() {
-	resolveCollectors(telemetryCollector)
-	telemetryCollector.Init()
+	resolveCollectors(collector)
+	collector.Init()
 	createMqttClient()
 }
 
-func resolveCollectors(tc *TelemetryCollector) {
-	var adcCol adcCollector = adcCollector("adc")
-	var sysCol sysCollector = sysCollector("system")
+var adcCol adcCollector = adcCollector{}
+var sysCol sysCollector = sysCollector("system")
+
+func resolveCollectors(tc *Collector) {
 	tc.Collectors = append(tc.Collectors, &adcCol, &sysCol)
 }
 
 func Collect() {
 	Init()
-	defer ad.Close()
+	if ad != nil {
+		defer ad.Close()
+	}
 	defer mqttClient.Disconnect(250)
-	collectTicker := time.NewTicker(time.Second)
-	sendTicker := time.NewTicker(time.Minute)
+
+	sendTicker := time.NewTicker(time.Second * time.Duration(config.Telemetry.Pusher.Interval))
+	adcColConf := config.Telemetry.ResolveCollector("adc")
+	sysColConf := config.Telemetry.ResolveCollector("system")
+	var adcColTicker *time.Ticker = createCollectorTicker(adcColConf)
+	var sysColTicker *time.Ticker = createCollectorTicker(sysColConf)
 
 	for {
 		select {
-		case <-collectTicker.C:
-			collectTelemetry()
+		case <-adcColTicker.C:
+			adcCol.Collect()
+		case <-sysColTicker.C:
+			sysCol.Collect()
 		case <-sendTicker.C:
 			sendTelemetry()
 		}
 	}
 }
 
-func collectTelemetry() {
-	telemetryCollector.Collect()
+func createCollectorTicker(collectorCfg *cfg.Collector) *time.Ticker {
+	if collectorCfg != nil {
+		return time.NewTicker(time.Second * time.Duration(collectorCfg.Interval))
+	} else {
+		return time.NewTicker(time.Hour * time.Duration(1000000))
+	}
 }
 
 func sendTelemetry() {
 	fmt.Println("Sending telemetry")
-	var payload = createPayload()
+	var payload, err = createPayload()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	fmt.Println(payload)
-
-	token := mqttClient.Publish("v1/devices/me/telemetry", 0, false, payload)
+	//go func() {
+	token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
 	token.Wait()
+	//}()
 }
 
-func createPayload() string {
-	var payload string = "{"
-	for _, c := range telemetryData.Data {
-		if c.isMedianCalculable() {
-			payload += fmt.Sprintf(`"%s": %f,`, c.Name, telemetryData.GetMedianValue(c.Name))
+func createPayload() (string, error) {
+	payload := make(map[string]interface{})
 
+	for _, cc := range config.Telemetry.Pusher.Keys {
+		c := telemetryData.Data[cc.Source]
+		if c != nil {
+			if c.isMedianCalculable() {
+				payload[c.Name] = telemetryData.GetMedianValue(c.Name)
+			} else {
+				switch c.Type {
+				case TYPE_FLOAT:
+					payload[c.Name] = c.Value
+				case TYPE_STRING:
+					payload[c.Name] = c.Value
+				}
+			}
 		}
-		c.Reset()
 	}
-	payload += "}"
-	return payload
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
 
 func createMqttClient() {

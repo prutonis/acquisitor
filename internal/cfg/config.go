@@ -21,6 +21,7 @@ type Adc struct {
 	I2cAddr   int        `yaml:"i2caddr"`
 	ConvDelay int        `yaml:"convdelay"`
 	Inputs    []AdcInput `yaml:"inputs"`
+	Enabled   bool       `yaml:"enabled"`
 }
 
 type Hardware struct {
@@ -28,13 +29,16 @@ type Hardware struct {
 }
 
 type Telemetry struct {
-	Server Server `yaml:"server"`
+	Server     Server      `yaml:"server"`
+	Collectors []Collector `yaml:"collectors"`
+	Pusher     Pusher      `yaml:"pusher"`
 }
 
 type Server struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
-	User string `yaml:"user"`
+	Host  string `yaml:"host"`
+	Port  int    `yaml:"port"`
+	User  string `yaml:"user"`
+	Topic string `yaml:"topic"`
 }
 
 type Config struct {
@@ -48,3 +52,51 @@ type Config struct {
 // PGA_1_024 = 3 // Full Scale Range = +/- 1.024V
 // PGA_0_512 = 4 // Full Scale Range = +/- 0.512V
 // PGA_0_256 = 5 // Full Scale Range = +/- 0.128V
+
+// create struct for telemetry data configured in acq-conf.yaml
+type Collector struct {
+	Name     string `yaml:"name"`
+	Enabled  bool   `yaml:"enabled"`
+	Interval int    `yaml:"interval"`
+	Keys     []CollectorKey
+}
+
+type CollectorKey struct {
+	Name   string  `yaml:"name"`
+	Unit   string  `yaml:"unit"`
+	Type   int     `yaml:"type"`
+	Median bool    `yaml:"median"`
+	Source string  `yaml:"source"`
+	Factor float32 `yaml:"factor"`
+}
+
+type Pusher struct {
+	Enabled  bool `yaml:"enabled"`
+	Interval int  `yaml:"interval"`
+	Keys     []PusherKey
+}
+
+type PusherKey struct {
+	Name   string `yaml:"name"`
+	Source string `yaml:"source"`
+}
+
+func (t *Telemetry) ResolveCollector(name string) *Collector {
+	var collector *Collector = nil
+	for _, c := range t.Collectors {
+		if c.Name == name {
+			return &c
+		}
+	}
+	return collector
+}
+
+func (c *Collector) ResolveKey(name string) *CollectorKey {
+	var key *CollectorKey = nil
+	for _, k := range c.Keys {
+		if k.Name == name {
+			return &k
+		}
+	}
+	return key
+}
