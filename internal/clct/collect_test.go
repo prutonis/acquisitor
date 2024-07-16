@@ -1,6 +1,7 @@
 package clct
 
 import (
+	"math"
 	"testing"
 )
 
@@ -144,4 +145,15 @@ func TestGetMedianValue(t *testing.T) {
 	if telemetryData.GetMedianValue("test") != 0 {
 		t.Errorf("Expected 0, got %v", telemetryData.GetMedianValue("test"))
 	}
+}
+
+func TestGetMedianValue2(t *testing.T) {
+
+	if math.Round(1.5) != 2 {
+		t.Errorf("Expected 2, got %v", math.Round(1.5))
+	}
+	if math.Round(2.4) != 2 {
+		t.Errorf("Expected 2, got %v", math.Round(2.5))
+	}
+
 }

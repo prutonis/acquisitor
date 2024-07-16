@@ -2,6 +2,8 @@ package clct
 
 import (
 	"fmt"
+	"math/rand"
+	"strings"
 
 	"github.com/prutonis/acquisitor/internal/adc"
 	"github.com/prutonis/acquisitor/internal/cfg"
@@ -24,15 +26,23 @@ type adcKey struct {
 
 func (ac *adcCollector) Init() {
 	if config.Hardware.Adc.Enabled {
+		// if adc name contains 'fake' then use fake adc
+		ac.initCollector()
+		if strings.Contains(config.Hardware.Adc.Name, "fake") {
+			// The string contains the substring "fake"
+			fmt.Println("Using fake ADC")
+			ad = FakeAdc("fake")
+			return
+		}
 		var ads adc.AdsOps = adc.NewAds(&config.Hardware.Adc)
 		ad = adc.NewAdc(ads)
-		ac.initCollector()
 	} else {
 		fmt.Println("ADC disabled")
 	}
 }
 
 func (ac *adcCollector) Collect() {
+	fmt.Println("Collecting adc data")
 	for _, key := range ac.Keys {
 		rawVal, err := ad.ReadValue(int(key.adcInput.Channel))
 		if err == nil {
@@ -57,10 +67,28 @@ func (ac *adcCollector) initCollector() {
 		adcInputs[input.Name] = input
 	}
 	for _, key := range adcCol.Keys {
-		var adcInput, ok = adcInputs[key.Name]
+		var adcInput, ok = adcInputs[key.Source]
 		if ok {
 			ac.Keys = append(ac.Keys, adcKey{key, adcInput})
 			telemetryData.Init(key.Name, key.Unit, key.Type, key.Median)
 		}
 	}
+}
+
+type FakeAdc string
+
+func (f FakeAdc) Init() error {
+	return nil
+}
+
+func (f FakeAdc) ReadValue(channel int) (int16, error) {
+	min := 100 // Define minimum value
+	max := 400 // Define maximum value
+	randomValue := rand.Intn(max-min+1) + min
+	return int16(randomValue), nil
+
+}
+
+func (f FakeAdc) Close() error {
+	return nil
 }

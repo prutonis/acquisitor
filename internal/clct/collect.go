@@ -3,9 +3,11 @@ package clct
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	cfg "github.com/prutonis/acquisitor/internal/cfg"
+	"github.com/spf13/cast"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -61,33 +63,33 @@ func createCollectorTicker(collectorCfg *cfg.Collector) *time.Ticker {
 }
 
 func sendTelemetry() {
-	fmt.Println("Sending telemetry")
 	var payload, err = createPayload()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(payload)
+	fmt.Println("Sending telemetry: ", payload)
 	//go func() {
-	token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
-	token.Wait()
+	//token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
+	//token.Wait()
 	//}()
 }
 
 func createPayload() (string, error) {
 	payload := make(map[string]interface{})
+	precision := config.Telemetry.Pusher.FloatPrecision
 
 	for _, cc := range config.Telemetry.Pusher.Keys {
 		c := telemetryData.Data[cc.Source]
 		if c != nil {
 			if c.isMedianCalculable() {
-				payload[c.Name] = telemetryData.GetMedianValue(c.Name)
+				payload[c.Name] = roundUp(c.GetMedianValue(), precision)
 			} else {
 				switch c.Type {
 				case TYPE_FLOAT:
-					payload[c.Name] = c.Value
+					payload[cc.Name] = roundUp(c.Value, precision)
 				case TYPE_STRING:
-					payload[c.Name] = c.Value
+					payload[cc.Name] = c.Value
 				}
 			}
 		}
@@ -97,6 +99,12 @@ func createPayload() (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+func roundUp(value interface{}, precision int) float64 {
+	m := math.Pow10(precision)
+	fv := cast.ToFloat64(value)
+	return math.Round(fv*m) / m
 }
 
 func createMqttClient() {

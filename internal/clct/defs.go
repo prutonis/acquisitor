@@ -42,6 +42,7 @@ var telemetryData *TelemetryData = &TelemetryData{Data: make(map[string]*Telemet
 
 func (tc *Collector) Init() {
 	for _, c := range tc.Collectors {
+		fmt.Println("Initializing collector: ", c.Name())
 		c.Init()
 	}
 }
@@ -71,6 +72,7 @@ func (t *TelemetryData) Convert(rawVal int16, key cfg.CollectorKey) float64 {
 func (t *TelemetryData) AddRawValue(name string, rawValue int16, cfg cfg.CollectorKey) {
 	var converted = t.Convert(rawValue, cfg)
 	t.AddValue(name, converted)
+	fmt.Printf("ADC [%s] raw value: %f\n", name, converted)
 }
 
 func (t *TelemetryData) AddValue(name string, value interface{}) {
@@ -159,7 +161,7 @@ func (t *TelemetryData) GetMedianValue(name string) float64 {
 	if !ok {
 		return 0
 	}
-	if tc.isMedianCalculable() {
+	if tc.isMedianCalculable() && tc.Count > 0 {
 		return tc.Vsum.(float64) / float64(tc.Count)
 	} else {
 		return 0

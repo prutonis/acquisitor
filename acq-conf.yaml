@@ -7,6 +7,7 @@ hardware:
   adc:
     #name: adc0
     name: fake
+    enabled: true
     type: ads1115
     i2caddr: 0x48
     i2cbus: 2
@@ -64,7 +65,7 @@ telemetry:
           factor: 1
           source: disk
     - name: adc
-      enabled: false
+      enabled: true
       interval: 5
       keys:
         - name: current
@@ -72,10 +73,10 @@ telemetry:
           factor: 0.3125
           median: true
           source: shunt
-        # - name: pressure
-        #   unit: bar
-        #   factor: 0.1
-        #   source: pressure
+        - name: pressure
+          unit: bar
+          factor: 0.1
+          source: pressure
         - name: voltage
           unit: V
           factor: 0.001
@@ -88,7 +89,10 @@ telemetry:
   pusher:
     enabled: true
     interval: 5
+    float_precision: 3
     keys:
+      - name: m_pressure
+        source: pressure
       - name: m_current
         source: current
       - name: m_voltage
