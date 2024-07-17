@@ -42,7 +42,7 @@ telemetry:
   collectors:
     - name: system
       enabled: true
-      interval: 1
+      interval: 1000
       keys:
         - name: uptime
           unit: s
@@ -71,7 +71,7 @@ telemetry:
         - name: current
           unit: mA
           factor: 0.3125
-          median: true
+          median: false
           source: shunt
         - name: pressure
           unit: bar
@@ -80,7 +80,7 @@ telemetry:
         - name: voltage
           unit: V
           factor: 0.001
-          median: true
+          median: false
           source: battery_24v
         # - name: voltage2
         #   unit: V
@@ -88,8 +88,8 @@ telemetry:
         #   source: battery_12v
   pusher:
     enabled: true
-    interval: 5
-    float_precision: 3
+    interval: 7
+    precision: 3
     keys:
       - name: m_pressure
         source: pressure

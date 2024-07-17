@@ -72,7 +72,6 @@ func (t *TelemetryData) Convert(rawVal int16, key cfg.CollectorKey) float64 {
 func (t *TelemetryData) AddRawValue(name string, rawValue int16, cfg cfg.CollectorKey) {
 	var converted = t.Convert(rawValue, cfg)
 	t.AddValue(name, converted)
-	fmt.Printf("ADC [%s] raw value: %f\n", name, converted)
 }
 
 func (t *TelemetryData) AddValue(name string, value interface{}) {

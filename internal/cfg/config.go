@@ -71,10 +71,10 @@ type CollectorKey struct {
 }
 
 type Pusher struct {
-	Enabled        bool `yaml:"enabled"`
-	Interval       int  `yaml:"interval"`
-	FloatPrecision int  `yaml:"float_precision"`
-	Keys           []PusherKey
+	Enabled   bool `yaml:"enabled"`
+	Interval  int  `yaml:"interval"`
+	Precision int  `yaml:"precision"`
+	Keys      []PusherKey
 }
 
 type PusherKey struct {

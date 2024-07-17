@@ -69,15 +69,15 @@ func sendTelemetry() {
 		return
 	}
 	fmt.Println("Sending telemetry: ", payload)
-	//go func() {
-	//token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
-	//token.Wait()
-	//}()
+	go func() {
+		token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
+		token.Wait()
+	}()
 }
 
 func createPayload() (string, error) {
 	payload := make(map[string]interface{})
-	precision := config.Telemetry.Pusher.FloatPrecision
+	precision := config.Telemetry.Pusher.Precision
 
 	for _, cc := range config.Telemetry.Pusher.Keys {
 		c := telemetryData.Data[cc.Source]
