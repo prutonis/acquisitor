@@ -1,0 +1,110 @@
+hardware:
+# ADC has 4 inputs:
+#   - 0: voltage on the Shunt resistor
+#   - 1: voltage on the Pressure sensor (50 Ohm resistor)
+#   - 2: voltage on the battery 24 V input (voltage divider)
+#   - 3: voltage on the battery 12 V input (voltage divider)
+  adc:
+    name: adc0
+    type: ads1115
+    i2caddr: 0x48
+    i2cbus: 2
+    enabled: true
+    inputs:
+      - name: shunt
+        channel: 0
+        gain: 4 # 0.512V
+      - name: pressure
+        channel: 1
+        gain: 2 # 2.048V
+      - name: battery_24v
+        channel: 2
+        gain: 2 # 2.048V
+      - name: battery_12v
+        channel: 3
+        gain: 2 # 2.048V
+
+
+# // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V
+# // PGA_4_096 = 1 // Full Scale Range = +/- 4.096V
+# // PGA_2_048 = 2 // Full Scale Range = +/- 2.048V
+# // PGA_1_024 = 3 // Full Scale Range = +/- 1.024V
+# // PGA_0_512 = 4 // Full Scale Range = +/- 0.512V
+# // PGA_0_256 = 5 // Full Scale Range = +/- 0.128V
+
+
+telemetry:
+  server:
+    host: tb1.morosanu.io
+    port: 1883
+    user: fw1wak1qj1ljdndqxi8l
+    topic: v1/devices/me/telemetry
+
+  collectors:
+    - name: system
+      enabled: true
+      interval: 5
+      keys:
+        - name: uptime
+          unit: s
+          factor: 1
+          source: uptime
+        - name: load
+          unit: 1
+          factor: 1
+          source: load
+        # - name: temp
+        #   unit: C
+        #   factor: 1
+        #   source: temp
+        - name: mem
+          unit: B
+          factor: 1
+          source: mem
+        - name: disk
+          unit: B
+          factor: 1
+          source: disk
+    - name: adc
+      enabled: true
+      interval: 10
+      keys:
+        - name: current
+          unit: mA
+          factor: 0.3125
+          #median: true
+          source: shunt
+        - name: pressure
+          unit: ua # microampere
+          factor: 1.25 
+          source: pressure
+        - name: voltage
+          unit: V
+          factor: 0.001
+          median: false
+          source: battery_24v
+        # - name: voltage2
+        #   unit: V
+        #   factor: 1
+        #   source: battery_12v
+  pusher:
+    enabled: true
+    interval: 30
+    precision: 2
+    keys:
+      - name: m_current
+        source: current
+      - name: m_pressure
+        source: pressure
+      - name: m_voltage
+        source: voltage
+      - name: m_temp
+        source: temp
+      - name: m_load
+        source: load
+      - name: m_mem
+        source: mem
+      - name: m_disk
+        source: disk
+      - name: m_uptime
+        source: uptime

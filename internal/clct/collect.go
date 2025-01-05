@@ -71,7 +71,11 @@ func sendTelemetry() {
 	fmt.Println("Sending telemetry: ", payload)
 	go func() {
 		token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
-		token.Wait()
+		if token.WaitTimeout(5 * time.Second) {
+			fmt.Println("Telemetry sent ", payload)
+		} else {
+			fmt.Println("Timeout on telemetry sending")
+		}
 	}()
 }
 
