@@ -107,7 +107,7 @@ func (t *TelemetryData) Convert(rawVal int16, key cfg.CollectorKey) float64 {
 			logger.Fatalf("Failed to evaluate expression: %v", err)
 		}
 		// Retrieve the float64 result
-		fmt.Printf("Result of evaluation: %v", result.Value())
+		//fmt.Printf("Result of evaluation: %v", result.Value())
 		return result.Value().(float64)
 	}
 	return float64(rawVal) * float64(key.Factor)
