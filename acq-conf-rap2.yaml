@@ -35,9 +35,9 @@ hardware:
 
 telemetry:
   server:
-    host: tb1.morosanu.io
+    host: dc.systematics.md
     port: 1883
-    user: fw1wak1qj1ljdndqxi8l
+    user: hncarrap2wh6e6kmnkiy
     topic: v1/devices/me/telemetry
 
   collectors:

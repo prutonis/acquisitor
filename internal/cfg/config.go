@@ -62,12 +62,13 @@ type Collector struct {
 }
 
 type CollectorKey struct {
-	Name   string  `yaml:"name"`
-	Unit   string  `yaml:"unit"`
-	Type   int     `yaml:"type"`
-	Median bool    `yaml:"median"`
-	Source string  `yaml:"source"`
-	Factor float32 `yaml:"factor"`
+	Name     string  `yaml:"name"`
+	Unit     string  `yaml:"unit"`
+	Type     int     `yaml:"type"`
+	Median   bool    `yaml:"median"`
+	Source   string  `yaml:"source"`
+	Factor   float32 `yaml:"factor"`
+	Function string  `yaml:"function"`
 }
 
 type Pusher struct {

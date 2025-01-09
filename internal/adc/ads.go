@@ -6,8 +6,8 @@ import (
 	"time"
 
 	cfg "github.com/prutonis/acquisitor/internal/cfg"
-	ads "github.com/sconklin/go-ads1115"
-	i2c "github.com/sconklin/go-i2c"
+	ads "github.com/prutonis/go-ads1115"
+	i2c "github.com/prutonis/go-i2c"
 )
 
 type ConVal struct {
