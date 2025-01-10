@@ -24,6 +24,16 @@ type Adc struct {
 	Enabled   bool       `yaml:"enabled"`
 }
 
+type GpioPin struct {
+	Name string `yaml:"name"`
+	Pin  uint16 `yaml:"pin"`
+}
+
+type Gpio struct {
+	Enabled bool      `yaml:"enabled"`
+	Pins    []GpioPin `yaml:"pins"`
+}
+
 type Hardware struct {
 	Adc Adc `yaml:"adc"`
 }

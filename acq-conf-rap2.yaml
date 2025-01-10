@@ -23,7 +23,15 @@ hardware:
       - name: battery_12v
         channel: 3
         gain: 2 # 2.048V
-
+  gpio:
+    enabled: true
+    pins:
+      - name: cam1
+        pin: 230
+      - name: cam2
+        pin: 229
+      - name: cam3
+        pin: 231
 
 # // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V
 # // PGA_4_096 = 1 // Full Scale Range = +/- 4.096V
