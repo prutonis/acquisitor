@@ -23,8 +23,6 @@ hardware:
       - name: battery_12v
         channel: 3
         gain: 2 # 2.048V
-
-
   gpio:
     enabled: true
     pins:
