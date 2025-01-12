@@ -27,5 +27,6 @@
             "program": "${workspaceFolder}",
             "args": ["collect", "--config",  "${workspaceFolder}/acq-conf.yaml"]
         }, 
+        
     ]
 }

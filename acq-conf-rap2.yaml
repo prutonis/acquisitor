@@ -28,10 +28,13 @@ hardware:
     pins:
       - name: cam1
         pin: 230
+        default: 1
       - name: cam2
         pin: 229
+        default: 1
       - name: cam3
         pin: 231
+        default: 1
 
 # // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V
 # // PGA_4_096 = 1 // Full Scale Range = +/- 4.096V
@@ -95,6 +98,17 @@ telemetry:
         #   unit: V
         #   factor: 1
         #   source: battery_12v
+    - name: gpio
+      enabled: true
+      interval: 300
+      keys:
+        - name: cam1
+          source: cam1
+        - name: cam2
+          source: cam2
+        - name: cam3
+          source: cam3
+
   pusher:
     enabled: true
     interval: 30
@@ -116,3 +130,9 @@ telemetry:
         source: disk
       - name: m_uptime
         source: uptime
+      - name: m_cam1
+        source: cam1
+      - name: m_cam2
+        source: cam2
+      - name: m_cam3
+        source: cam3

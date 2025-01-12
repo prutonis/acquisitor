@@ -57,7 +57,7 @@ func (ac *adcCollector) Name() string {
 
 func (ac *adcCollector) initCollector() {
 	ac.Keys = make([]adcKey, 0)
-	var adcCol = config.Telemetry.ResolveCollector(COLLECTOR_NAME_ADC)
+	var adcCol = config.Telemetry.ResolveCollector(ac.Name())
 	if adcCol == nil {
 		return
 	}

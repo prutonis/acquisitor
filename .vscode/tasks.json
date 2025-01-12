@@ -1,0 +1,43 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "go",
+			"label": "go: build package",
+			"command": "build",
+			"args": [
+				"${fileDirname}"
+			],
+			"problemMatcher": [
+				"$go"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "cd c:\\My Program Files\\Sources\\go\\acquisitor; go build ${fileDirname}"
+		},
+		{
+            "label": "Build for Linux (arm)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-o",
+                "acq"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "options": {
+                "env": {
+                    "GOOS": "linux",
+                    "GOARCH": "arm",
+					"GOARM":"7"
+                }
+            }
+        }
+	]
+}

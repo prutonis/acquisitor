@@ -19,7 +19,7 @@ const (
 type sysCollector string
 
 func (ac *sysCollector) Init() {
-	var sysCol = config.Telemetry.ResolveCollector("system")
+	var sysCol = config.Telemetry.ResolveCollector(ac.Name())
 	if sysCol == nil {
 		return
 	}

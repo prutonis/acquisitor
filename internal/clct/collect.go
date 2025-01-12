@@ -24,9 +24,10 @@ func Init() {
 
 var adcCol adcCollector = adcCollector{}
 var sysCol sysCollector = sysCollector("system")
+var gpioCol gpioCollector = gpioCollector{}
 
 func resolveCollectors(tc *Collector) {
-	tc.Collectors = append(tc.Collectors, &adcCol, &sysCol)
+	tc.Collectors = append(tc.Collectors, &adcCol, &sysCol, &gpioCol)
 }
 
 func Collect() {
@@ -39,15 +40,18 @@ func Collect() {
 	sendTicker := time.NewTicker(time.Second * time.Duration(config.Telemetry.Pusher.Interval))
 	adcColConf := config.Telemetry.ResolveCollector("adc")
 	sysColConf := config.Telemetry.ResolveCollector("system")
+	gpioColConf := config.Telemetry.ResolveCollector("gpio")
 	var adcColTicker *time.Ticker = createCollectorTicker(adcColConf)
 	var sysColTicker *time.Ticker = createCollectorTicker(sysColConf)
-
+	var gpioColTicker *time.Ticker = createCollectorTicker(gpioColConf)
 	for {
 		select {
 		case <-adcColTicker.C:
 			adcCol.Collect()
 		case <-sysColTicker.C:
 			sysCol.Collect()
+		case <-gpioColTicker.C:
+			gpioCol.Collect()
 		case <-sendTicker.C:
 			sendTelemetry()
 		}

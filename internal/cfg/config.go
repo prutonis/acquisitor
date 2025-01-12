@@ -25,8 +25,9 @@ type Adc struct {
 }
 
 type GpioPin struct {
-	Name string `yaml:"name"`
-	Pin  uint16 `yaml:"pin"`
+	Name    string `yaml:"name"`
+	Pin     int    `yaml:"pin"`
+	Default int    `yaml:"default"`
 }
 
 type Gpio struct {
@@ -35,7 +36,8 @@ type Gpio struct {
 }
 
 type Hardware struct {
-	Adc Adc `yaml:"adc"`
+	Adc  Adc  `yaml:"adc"`
+	Gpio Gpio `yaml:"gpio"`
 }
 
 type Telemetry struct {
