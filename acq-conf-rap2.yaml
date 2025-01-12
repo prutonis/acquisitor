@@ -23,6 +23,8 @@ hardware:
       - name: battery_12v
         channel: 3
         gain: 2 # 2.048V
+
+
   gpio:
     enabled: true
     pins:
@@ -87,7 +89,11 @@ telemetry:
           source: shunt
         - name: pressure
           unit: ua # microampere
-          factor: 1.25 
+          factor: 1.25
+          source: pressure
+        - name: levelm
+          unit: m # meters
+          function: (((double(raw) * 1.25) / 1000.0) - 4.0) * (6.0/16.0)
           source: pressure
         - name: voltage
           unit: V
@@ -100,7 +106,7 @@ telemetry:
         #   source: battery_12v
     - name: gpio
       enabled: true
-      interval: 300
+      interval: 30
       keys:
         - name: cam1
           source: cam1
@@ -118,6 +124,8 @@ telemetry:
         source: current
       - name: m_pressure
         source: pressure
+      - name: m_levelm
+        source: levelm
       - name: m_voltage
         source: voltage
       - name: m_temp
