@@ -65,3 +65,35 @@ func (gc *gpioCollector) Collect() {
 func (gc *gpioCollector) Name() string {
 	return "gpio"
 }
+
+func (gc *gpioCollector) ReadPins() map[string]int {
+	var pinMap = make(map[string]int)
+	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
+	for _, key := range gpioCol.Keys {
+		gp, exists := gc.Pins[key.Source]
+		if exists {
+			lineState, err := gp.line.Value()
+			if err == nil {
+				pinMap[key.Name] = lineState
+			}
+		}
+	}
+	return pinMap
+}
+
+func (gc *gpioCollector) SetPins(pins map[string]interface{}) {
+	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
+	for _, key := range gpioCol.Keys {
+		cp, e1 := pins[key.Name]
+		cpf, e2 := cp.(float64)
+		gp, e3 := gc.Pins[key.Source]
+		if e1 && e2 && e3 {
+			err := gp.line.SetValue(int(cpf))
+			if err != nil {
+				logger.Log.Errorf("Couldn't set pin %s (%d) to value %d", key.Name, gp.line.Offset(), cp)
+			} else {
+				logger.Log.Infof("GPIO set pin %s (%d) to value %d", key.Name, gp.line.Offset(), cp)
+			}
+		}
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	cfg "github.com/prutonis/acquisitor/internal/cfg"
@@ -67,14 +68,10 @@ func createCollectorTicker(collectorCfg *cfg.Collector) *time.Ticker {
 }
 
 func sendTelemetry() {
-	var payload, err = createPayload()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	payload := createPayload()
 	fmt.Println("Sending telemetry: ", payload)
 	go func() {
-		token := mqttClient.Publish(config.Telemetry.Server.Topic, 0, false, payload)
+		token := mqttClient.Publish(config.Telemetry.Server.PublishTopic, 0, false, payload)
 		if token.WaitTimeout(5 * time.Second) {
 			fmt.Println("Telemetry sent ", payload)
 		} else {
@@ -83,7 +80,7 @@ func sendTelemetry() {
 	}()
 }
 
-func createPayload() (string, error) {
+func createPayload() string {
 	payload := make(map[string]interface{})
 	precision := config.Telemetry.Pusher.Precision
 
@@ -102,11 +99,15 @@ func createPayload() (string, error) {
 			}
 		}
 	}
+	return serialize(payload)
+}
+
+func serialize(payload map[string]interface{}) string {
 	bytes, err := json.Marshal(payload)
 	if err != nil {
-		return "", err
+		return "{}"
 	}
-	return string(bytes), nil
+	return string(bytes)
 }
 
 func roundUp(value interface{}, precision int) float64 {
@@ -124,4 +125,98 @@ func createMqttClient() {
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
+	st := config.Telemetry.Server.SubscribeTopic + "+"
+	mqttClient.Subscribe(st, 1, messageSubHandler)
+}
+
+type RpcPayload struct {
+	Method string      `json:"method"`
+	Params interface{} `json:"params"`
+}
+
+var messageSubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
+
+	reqId, found := strings.CutPrefix(msg.Topic(), config.Telemetry.Server.SubscribeTopic)
+	if found {
+		var payload RpcPayload
+		err := json.Unmarshal(msg.Payload(), &payload)
+		if err != nil {
+			fmt.Printf("Error parsing JSON payload: %v\n", err)
+			return
+		}
+
+		// Access parsed data
+		fmt.Printf("Parsed Payload: %+v\n", payload)
+		fmt.Printf("Method: %s, params: %+v\n", payload.Method, payload.Params)
+
+		switch v := payload.Params.(type) {
+		case string:
+			fmt.Printf("Params Value (string): %s\n", v)
+		case float64: // JSON numbers are parsed as float64 in Go
+			fmt.Printf("Params Value (number): %f\n", v)
+		case map[string]interface{}: // Nested objects
+			fmt.Printf("Params Value (object): %v\n", v)
+		case []interface{}: // Array of values
+			fmt.Printf("Params Value (array): %v\n", v)
+		default:
+			fmt.Printf("Params Value (unknown type): %v\n", v)
+		}
+
+		ExecuteRpc(reqId, Command(payload.Method), payload.Params)
+	}
+
+}
+
+type Command string
+
+const (
+	GetStatus    Command = "getStatus"
+	GetTelemetry Command = "getTelemetry"
+	GetPins      Command = "getPins"
+	SetPins      Command = "setPins"
+	SetPin       Command = "setPin"
+	Help         Command = "help"
+)
+
+type RpcResponse map[string]interface{}
+
+func ExecuteRpc(requestId string, cmd Command, params interface{}) {
+	resp := make(RpcResponse)
+	switch cmd {
+	case GetStatus:
+		fmt.Println("Status is OK.")
+		resp["status"] = "ok"
+	case GetTelemetry:
+		fmt.Println("Get telemetry.")
+	case GetPins:
+		fmt.Println("Get pins.")
+		resp["pins"] = gpioCol.ReadPins()
+	case SetPins:
+		if pinMap, ok := params.(map[string]interface{}); ok {
+			gpioCol.SetPins(pinMap)
+			resp["setPins"] = "ok"
+		} else {
+			resp["setPins"] = "failed"
+		}
+	case SetPin:
+		if pinMap, ok := params.(map[string]interface{}); ok {
+			gpioCol.SetPins(pinMap)
+			resp["setPin"] = "ok"
+		} else {
+			resp["setPin"] = "failed"
+		}
+	case Help:
+		resp["cmds"] = [...]string{string(Help), string(GetStatus), string(GetTelemetry), string(GetPins), string(SetPins), string(SetPin)}
+	default:
+		fmt.Println("Unknown cmd")
+	}
+
+	token := mqttClient.Publish(config.Telemetry.Server.ResponseTopic+requestId, 0, false, serialize(resp))
+	if token.WaitTimeout(5 * time.Second) {
+		fmt.Printf("RPC Response sent %+v\n", resp)
+	} else {
+		fmt.Println("Timeout on response sending")
+	}
+
 }

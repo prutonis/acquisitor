@@ -49,7 +49,9 @@ telemetry:
     host: dc.systematics.md
     port: 1883
     user: hncarrap2wh6e6kmnkiy
-    topic: v1/devices/me/telemetry
+    publishTopic: v1/devices/me/telemetry
+    subscribeTopic: v1/devices/me/rpc/request/
+    responseTopic: v1/devices/me/rpc/response/
 
   collectors:
     - name: system

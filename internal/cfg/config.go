@@ -47,10 +47,12 @@ type Telemetry struct {
 }
 
 type Server struct {
-	Host  string `yaml:"host"`
-	Port  int    `yaml:"port"`
-	User  string `yaml:"user"`
-	Topic string `yaml:"topic"`
+	Host           string `yaml:"host"`
+	Port           int    `yaml:"port"`
+	User           string `yaml:"user"`
+	PublishTopic   string `yaml:"publishTopic"`
+	SubscribeTopic string `yaml:"subscribeTopic"`
+	ResponseTopic  string `yaml:"responseTopic"`
 }
 
 type Config struct {
