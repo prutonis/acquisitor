@@ -205,6 +205,7 @@ func ExecuteRpc(requestId string, cmd Command, params interface{}) {
 		} else {
 			resp["setPins"] = "failed"
 		}
+		sendTelemetry()
 	case SetPin:
 		if pinMap, ok := params.(map[string]interface{}); ok {
 			gpioCol.SetPins(pinMap)
@@ -212,6 +213,7 @@ func ExecuteRpc(requestId string, cmd Command, params interface{}) {
 		} else {
 			resp["setPin"] = "failed"
 		}
+		sendTelemetry()
 	case Help:
 		resp["cmds"] = [...]string{string(Help), string(GetStatus), string(GetTelemetry), string(GetPins), string(SetPins), string(SetPin)}
 	default:
