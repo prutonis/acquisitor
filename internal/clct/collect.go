@@ -68,7 +68,7 @@ func createCollectorTicker(collectorCfg *cfg.Collector) *time.Ticker {
 }
 
 func sendTelemetry() {
-	payload := createPayload()
+	payload := createTelemetryJson()
 	fmt.Println("Sending telemetry: ", payload)
 	go func() {
 		token := mqttClient.Publish(config.Telemetry.Server.PublishTopic, 0, false, payload)
@@ -80,7 +80,7 @@ func sendTelemetry() {
 	}()
 }
 
-func createPayload() string {
+func createTelemetryPayload() map[string]interface{} {
 	payload := make(map[string]interface{})
 	precision := config.Telemetry.Pusher.Precision
 
@@ -99,6 +99,11 @@ func createPayload() string {
 			}
 		}
 	}
+	return payload
+}
+
+func createTelemetryJson() string {
+	payload := createTelemetryPayload()
 	return serialize(payload)
 }
 
@@ -176,7 +181,7 @@ const (
 	GetPins      Command = "getPins"
 	SetPins      Command = "setPins"
 	SetPin       Command = "setPin"
-	Help         Command = "help"
+	Help         Command = "Help"
 )
 
 type RpcResponse map[string]interface{}
@@ -189,6 +194,7 @@ func ExecuteRpc(requestId string, cmd Command, params interface{}) {
 		resp["status"] = "ok"
 	case GetTelemetry:
 		fmt.Println("Get telemetry.")
+		resp = createTelemetryPayload()
 	case GetPins:
 		fmt.Println("Get pins.")
 		resp["pins"] = gpioCol.ReadPins()
