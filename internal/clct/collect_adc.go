@@ -5,8 +5,11 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/checker/decls"
 	"github.com/prutonis/acquisitor/internal/adc"
 	"github.com/prutonis/acquisitor/internal/cfg"
+	"github.com/prutonis/acquisitor/pkg/logger"
 )
 
 const (
@@ -20,8 +23,9 @@ type adcCollector struct {
 }
 
 type adcKey struct {
-	collectorKey cfg.CollectorKey
-	adcInput     cfg.AdcInput
+	collectorKey  cfg.CollectorKey
+	adcInput      cfg.AdcInput
+	transformFunc cel.Program
 }
 
 func (ac *adcCollector) Init() {
@@ -46,7 +50,7 @@ func (ac *adcCollector) Collect() {
 	for _, key := range ac.Keys {
 		rawVal, err := ad.ReadValue(int(key.adcInput.Channel))
 		if err == nil {
-			telemetryData.AddRawValue(key.collectorKey.Name, rawVal, key.collectorKey)
+			telemetryData.AddRawValue(key.collectorKey.Name, rawVal, key.collectorKey, key.transformFunc)
 		}
 	}
 }
@@ -69,10 +73,40 @@ func (ac *adcCollector) initCollector() {
 	for _, key := range adcCol.Keys {
 		var adcInput, ok = adcInputs[key.Source]
 		if ok {
-			ac.Keys = append(ac.Keys, adcKey{key, adcInput})
+			ac.Keys = append(ac.Keys, adcKey{key, adcInput, loadTransformFunction(key.Function)})
 			telemetryData.Init(key.Name, key.Unit, key.Type, key.Median)
 		}
 	}
+}
+
+func loadTransformFunction(function string) cel.Program {
+	if function == "" {
+		function = "raw"
+	}
+	// Define the CEL environment
+	env, err := cel.NewEnv(
+		cel.Declarations(
+			decls.NewVar("raw", decls.Double),
+		),
+	)
+	if err != nil {
+		logger.Info("test my logger")
+		logger.Fatalf("Failed to create CEL environment: %v", err)
+	}
+
+	// Parse and check the expression
+	ast, issues := env.Compile(function)
+	if issues != nil && issues.Err() != nil {
+		logger.Fatalf("Failed to compile expression: %v", issues.Err())
+	}
+
+	// Create a program from the AST
+	prog, err := env.Program(ast)
+	if err != nil {
+		logger.Fatalf("Failed to create CEL program: %v", err)
+	}
+
+	return prog
 }
 
 type FakeAdc string

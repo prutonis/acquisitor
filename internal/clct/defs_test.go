@@ -22,7 +22,7 @@ func TestTelemetryData_Convert(t *testing.T) {
 			tr:   &TelemetryData{},
 			args: args{
 				rawVal: 1000,
-				key:    cfg.CollectorKey{Factor: 2.5},
+				key:    cfg.CollectorKey{Function: "raw*2.5"},
 			},
 			want: 2500.0, // rawVal * key.Factor
 		},
@@ -31,7 +31,7 @@ func TestTelemetryData_Convert(t *testing.T) {
 			tr:   &TelemetryData{},
 			args: args{
 				rawVal: 7000,
-				key:    cfg.CollectorKey{Function: "(((double(raw) * 1.25) / 1000.0) - 4.0) * (6.0/16.0)"},
+				key:    cfg.CollectorKey{Function: "(((raw * 1.25) / 1000.0) - 4.0) * (6.0/16.0)"},
 			},
 			want: 1.78125,
 		},
@@ -40,14 +40,14 @@ func TestTelemetryData_Convert(t *testing.T) {
 			tr:   &TelemetryData{},
 			args: args{
 				rawVal: -1000, // Test with negative raw value
-				key:    cfg.CollectorKey{Factor: 2.5},
+				key:    cfg.CollectorKey{Function: "2.5*raw"},
 			},
 			want: -2500.0, // rawVal * key.Factor
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.tr.Convert(tt.args.rawVal, tt.args.key); got != tt.want {
+			if got := tt.tr.Convert(tt.args.rawVal, tt.args.key, loadTransformFunction(tt.args.key.Function)); got != tt.want {
 				t.Errorf("TelemetryData.Convert() = %v, want %v", got, tt.want)
 			}
 		})

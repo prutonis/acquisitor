@@ -2,16 +2,10 @@ package cfg
 
 var AcqConfig Config
 
-type Conversion struct {
-	Unit   string  `yaml:"unit"`
-	Factor float32 `yaml:"factor"`
-}
-
 type AdcInput struct {
-	Name    string     `yaml:"name"`
-	Channel uint16     `yaml:"channel"`
-	Gain    uint16     `yaml:"gain"`
-	Conv    Conversion `yaml:"conv"`
+	Name    string `yaml:"name"`
+	Channel uint16 `yaml:"channel"`
+	Gain    uint16 `yaml:"gain"`
 }
 
 type Adc struct {
@@ -76,13 +70,12 @@ type Collector struct {
 }
 
 type CollectorKey struct {
-	Name     string  `yaml:"name"`
-	Unit     string  `yaml:"unit"`
-	Type     int     `yaml:"type"`
-	Median   bool    `yaml:"median"`
-	Source   string  `yaml:"source"`
-	Factor   float32 `yaml:"factor"`
-	Function string  `yaml:"function"`
+	Name     string `yaml:"name"`
+	Unit     string `yaml:"unit"`
+	Type     int    `yaml:"type"`
+	Median   bool   `yaml:"median"`
+	Source   string `yaml:"source"`
+	Function string `yaml:"function"`
 }
 
 type Pusher struct {

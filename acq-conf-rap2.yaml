@@ -60,23 +60,18 @@ telemetry:
       keys:
         - name: uptime
           unit: s
-          factor: 1
           source: uptime
         - name: load
           unit: 1
-          factor: 1
           source: load
         # - name: temp
         #   unit: C
-        #   factor: 1
         #   source: temp
         - name: mem
           unit: B
-          factor: 1
           source: mem
         - name: disk
           unit: B
-          factor: 1
           source: disk
     - name: adc
       enabled: true
@@ -84,25 +79,24 @@ telemetry:
       keys:
         - name: current
           unit: mA
-          factor: 0.3125
+          function: raw * 0.3125
           #median: true
           source: shunt
         - name: pressure
           unit: ua # microampere
-          factor: 1.25
+          function: raw * 1.25
           source: pressure
         - name: levelm
           unit: m # meters
-          function: (((double(raw) * 1.25) / 1000.0) - 4.0) * (6.0/16.0)
+          function: (((raw * 1.25) / 1000.0) - 4.0) * (6.0/16.0)
           source: pressure
         - name: voltage
           unit: V
-          factor: 0.001
+          function: raw * 0.001
           median: false
           source: battery_24v
         # - name: voltage2
         #   unit: V
-        #   factor: 1
         #   source: battery_12v
     - name: gpio
       enabled: true

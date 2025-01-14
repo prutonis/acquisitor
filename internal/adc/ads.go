@@ -19,7 +19,6 @@ type ConVal struct {
 type AdsOps interface {
 	SetConfig(adcInput *cfg.AdcInput) error
 	SetCurrentChannel(channel int) error
-	GetConverted(channel int, rawValue int16) ConVal
 	ReadValue() (int16, error)
 	ReadConfig() (uint16, error)
 	Close() error
@@ -145,10 +144,4 @@ func (ads *Ads) ReadConfig() (uint16, error) {
 
 func (ads *Ads) Close() error {
 	return ads.I2C.Close()
-}
-
-func (ads *Ads) GetConverted(channel int, rawValue int16) ConVal {
-	var conv cfg.Conversion = ads.Cfg.Inputs[channel].Conv
-	val := float32(rawValue) * conv.Factor
-	return ConVal{Channel: channel, Value: val, Unit: conv.Unit}
 }

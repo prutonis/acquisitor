@@ -1,3 +1,5 @@
+//go:build !windows
+
 package clct
 
 import (
@@ -90,9 +92,9 @@ func (gc *gpioCollector) SetPins(pins map[string]interface{}) {
 		if e1 && e2 && e3 {
 			err := gp.line.SetValue(int(cpf))
 			if err != nil {
-				logger.Log.Errorf("Couldn't set pin %s (%d) to value %d", key.Name, gp.line.Offset(), cp)
+				logger.Log.Errorf("Couldn't set pin %s (%d) to value %d", key.Name, gp.line.Offset(), int(cpf))
 			} else {
-				logger.Log.Infof("GPIO set pin %s (%d) to value %d", key.Name, gp.line.Offset(), cp)
+				logger.Log.Infof("GPIO set pin %s (%d) to value %d", key.Name, gp.line.Offset(), int(cpf))
 			}
 		}
 	}

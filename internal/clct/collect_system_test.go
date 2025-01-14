@@ -21,7 +21,6 @@ func init() {
 							Type:   TYPE_FLOAT,
 							Median: false,
 							Source: "",
-							Factor: 1.0,
 						},
 						{
 							Name:   KEY_MEM,
@@ -29,7 +28,6 @@ func init() {
 							Type:   TYPE_FLOAT,
 							Median: false,
 							Source: "",
-							Factor: 1.0,
 						},
 						{
 							Name:   KEY_DISK,
@@ -37,7 +35,6 @@ func init() {
 							Type:   TYPE_FLOAT,
 							Median: false,
 							Source: "",
-							Factor: 1.0,
 						},
 						{
 							Name:   KEY_UPTIME,
@@ -45,7 +42,6 @@ func init() {
 							Type:   TYPE_FLOAT,
 							Median: false,
 							Source: "",
-							Factor: 1.0,
 						},
 					},
 				},

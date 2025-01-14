@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/checker/decls"
 	"github.com/prutonis/acquisitor/internal/cfg"
 	"github.com/prutonis/acquisitor/pkg/logger"
 
@@ -70,51 +69,25 @@ func (t *TelemetryData) ResolveChannel(name string) *TelemetryChannel {
 	return tc
 }
 
-func (t *TelemetryData) Convert(rawVal int16, key cfg.CollectorKey) float64 {
-	if key.Function != "" {
-		// Define the CEL environment
-		env, err := cel.NewEnv(
-			cel.Declarations(
-				decls.NewVar("raw", decls.Int),
-			),
-		)
-		if err != nil {
-			logger.Info("test my logger")
-			logger.Fatalf("Failed to create CEL environment: %v", err)
-		}
+func (t *TelemetryData) Convert(rawVal int16, key cfg.CollectorKey, program cel.Program) float64 {
 
-		expression := key.Function
-		// Parse and check the expression
-		ast, issues := env.Compile(expression)
-		if issues != nil && issues.Err() != nil {
-			logger.Fatalf("Failed to compile expression: %v", issues.Err())
-		}
-
-		// Create a program from the AST
-		program, err := env.Program(ast)
-		if err != nil {
-			logger.Fatalf("Failed to create CEL program: %v", err)
-		}
-
-		// Define input data (activation)
-		input := map[string]interface{}{
-			"raw": rawVal, // Provide a value for the variable `raw`
-		}
-
-		// Evaluate the program
-		result, _, err := program.Eval(input)
-		if err != nil {
-			logger.Fatalf("Failed to evaluate expression: %v", err)
-		}
-		// Retrieve the float64 result
-		//fmt.Printf("Result of evaluation: %v", result.Value())
-		return result.Value().(float64)
+	// Define input data (activation)
+	input := map[string]interface{}{
+		"raw": float64(rawVal),
 	}
-	return float64(rawVal) * float64(key.Factor)
+
+	// Evaluate the program
+	result, _, err := program.Eval(input)
+	if err != nil {
+		logger.Fatalf("Failed to evaluate expression: %v", err)
+	}
+	// Retrieve the float64 result
+	return result.Value().(float64)
+
 }
 
-func (t *TelemetryData) AddRawValue(name string, rawValue int16, cfg cfg.CollectorKey) {
-	var converted = t.Convert(rawValue, cfg)
+func (t *TelemetryData) AddRawValue(name string, rawValue int16, cfg cfg.CollectorKey, transformFn cel.Program) {
+	var converted = t.Convert(rawValue, cfg, transformFn)
 	t.AddValue(name, converted)
 }
 
