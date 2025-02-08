@@ -40,6 +40,10 @@ type Telemetry struct {
 	Pusher     Pusher      `yaml:"pusher"`
 }
 
+type Logging struct {
+	File string `yaml:"file"`
+}
+
 type Server struct {
 	Host           string `yaml:"host"`
 	Port           int    `yaml:"port"`
@@ -52,6 +56,7 @@ type Server struct {
 type Config struct {
 	Hardware  Hardware  `yaml:"hardware"`
 	Telemetry Telemetry `yaml:"telemetry"`
+	Logging   Logging   `yaml:"logging"`
 }
 
 // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V

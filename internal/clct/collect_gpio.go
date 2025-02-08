@@ -3,8 +3,6 @@
 package clct
 
 import (
-	"fmt"
-
 	"github.com/prutonis/acquisitor/pkg/logger"
 	"github.com/warthog618/go-gpiocdev"
 )
@@ -27,17 +25,17 @@ type gpioPin struct {
 
 func (gc *gpioCollector) Init() {
 	if !config.Hardware.Gpio.Enabled {
-		logger.Log.Warn("GPIO pins not configured!")
+		logger.Warningf("GPIO pins not configured!")
 		return
 	}
 	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
 	if gpioCol == nil {
-		logger.Log.Warn("GPIO collector not configured")
+		logger.Warningf("GPIO collector not configured")
 		return
 	}
 	gc.Pins = map[string]gpioPin{}
 	for _, p := range config.Hardware.Gpio.Pins {
-		logger.Log.Infof("Configuring GPIO pin %s[%d]=%d", p.Name, p.Pin, p.Default)
+		logger.Infof("Configuring GPIO pin %s[%d]=%d", p.Name, p.Pin, p.Default)
 		line, _ := gpiocdev.RequestLine(GPIOCHIP, p.Pin, gpiocdev.AsOutput(p.Default))
 		gc.Pins[p.Name] = gpioPin{
 			name: p.Name,
@@ -51,7 +49,7 @@ func (gc *gpioCollector) Init() {
 }
 
 func (gc *gpioCollector) Collect() {
-	fmt.Println("Collecting gpio data")
+	logger.Debugf("Collecting gpio data")
 	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
 	for _, key := range gpioCol.Keys {
 		gp, exists := gc.Pins[key.Source]
@@ -92,9 +90,9 @@ func (gc *gpioCollector) SetPins(pins map[string]interface{}) {
 		if e1 && e2 && e3 {
 			err := gp.line.SetValue(int(cpf))
 			if err != nil {
-				logger.Log.Errorf("Couldn't set pin %s (%d) to value %d", key.Name, gp.line.Offset(), int(cpf))
+				logger.Errorf("Couldn't set pin %s (%d) to value %d", key.Name, gp.line.Offset(), int(cpf))
 			} else {
-				logger.Log.Infof("GPIO set pin %s (%d) to value %d", key.Name, gp.line.Offset(), int(cpf))
+				logger.Infof("GPIO set pin %s (%d) to value %d", key.Name, gp.line.Offset(), int(cpf))
 			}
 		}
 	}

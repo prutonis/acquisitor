@@ -1,11 +1,11 @@
 package adc
 
 import (
-	"fmt"
 	"log"
 	"time"
 
 	cfg "github.com/prutonis/acquisitor/internal/cfg"
+	"github.com/prutonis/acquisitor/pkg/logger"
 	ads "github.com/prutonis/go-ads1115"
 	i2c "github.com/prutonis/go-i2c"
 )
@@ -31,67 +31,67 @@ type Ads struct {
 }
 
 func NewAds(adcCfg *cfg.Adc) *Ads {
-	fmt.Printf("Using ADC: %v\n", adcCfg)
+	logger.Infof("Using ADC: %v\n", adcCfg)
 	i2c, err := i2c.NewI2C(uint8(adcCfg.I2cAddr), adcCfg.I2cBus)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot initiate I2C", err)
 	}
 
 	sensor, err := ads.NewADS(ads.ADS1115, i2c) // signature=0x58
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot initiate ADS1115", err)
 	}
 
 	err = sensor.SetConversionMode(ads.MODE_SINGLE_SHOT)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("  Configured for single shot mode")
+	logger.Infof("  Configured for single shot mode")
 
 	err = sensor.SetDataRate(ads.RATE_8)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set data rate", err)
 	}
-	log.Println("  Configured for 128 Samples per Second") // is working for single shot mode?
+	logger.Infof("  Configured for 128 Samples per Second") // is working for single shot mode?
 
 	err = sensor.SetComparatorMode(ads.COMP_MODE_TRADITIONAL)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set comparator mode", err)
 	}
-	log.Println("  Configured for traditional comparator mode")
+	logger.Infof("  Configured for traditional comparator mode")
 
 	err = sensor.SetComparatorPolarity(ads.COMP_POL_ACTIVE_LOW)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set comparator polarity", err)
 	}
-	log.Println("  Configured comparator active low")
+	logger.Infof("  Configured comparator active low")
 
 	err = sensor.SetComparatorLatch(ads.COMP_LAT_OFF)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set comparator latch", err)
 	}
-	log.Println("  Configured comparator latch off")
+	logger.Infof("  Configured comparator latch off")
 
 	err = sensor.SetComparatorQueue(ads.COMP_QUE_DISABLE)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set comparator queue", err)
 	}
 	err = sensor.SetPgaMode(ads.PGA_2_048)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set PGA mode", err)
 	}
 	err = sensor.SetMuxMode(ads.MUX_SINGLE_0)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatalf("Cannot set MUX mode", err)
 	}
 
-	fmt.Println("ADC initialized", sensor)
+	logger.Infof("ADC initialized", sensor)
 	sensor.WriteConfig()
 	return &Ads{Cfg: adcCfg, Sensor: sensor, I2C: i2c}
 }
 
 func (ads *Ads) SetConfig(config *cfg.AdcInput) error {
-	//fmt.Printf("Setting ADC config: %v\n", config)
+	//logger.Infof("Setting ADC config: %v\n", config)
 	err := ads.Sensor.SetPgaMode(config.Gain)
 	if err != nil {
 		return err

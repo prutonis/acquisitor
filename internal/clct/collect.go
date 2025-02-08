@@ -8,6 +8,7 @@ import (
 	"time"
 
 	cfg "github.com/prutonis/acquisitor/internal/cfg"
+	"github.com/prutonis/acquisitor/pkg/logger"
 	"github.com/spf13/cast"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -69,13 +70,13 @@ func createCollectorTicker(collectorCfg *cfg.Collector) *time.Ticker {
 
 func sendTelemetry() {
 	payload := createTelemetryJson()
-	fmt.Println("Sending telemetry: ", payload)
+	logger.Info("Sending telemetry: ", payload)
 	go func() {
 		token := mqttClient.Publish(config.Telemetry.Server.PublishTopic, 0, false, payload)
 		if token.WaitTimeout(5 * time.Second) {
-			fmt.Println("Telemetry sent ", payload)
+			logger.Debug("Telemetry sent ", payload)
 		} else {
-			fmt.Println("Timeout on telemetry sending")
+			logger.Info("Timeout on telemetry sending")
 		}
 	}()
 }
@@ -140,32 +141,32 @@ type RpcPayload struct {
 }
 
 var messageSubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	fmt.Printf("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
+	logger.Infof("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
 
 	reqId, found := strings.CutPrefix(msg.Topic(), config.Telemetry.Server.SubscribeTopic)
 	if found {
 		var payload RpcPayload
 		err := json.Unmarshal(msg.Payload(), &payload)
 		if err != nil {
-			fmt.Printf("Error parsing JSON payload: %v\n", err)
+			logger.Errorf("Error parsing JSON payload: %v\n", err)
 			return
 		}
 
 		// Access parsed data
-		fmt.Printf("Parsed Payload: %+v\n", payload)
-		fmt.Printf("Method: %s, params: %+v\n", payload.Method, payload.Params)
+		logger.Infof("Parsed Payload: %+v\n", payload)
+		logger.Infof("Method: %s, params: %+v\n", payload.Method, payload.Params)
 
 		switch v := payload.Params.(type) {
 		case string:
-			fmt.Printf("Params Value (string): %s\n", v)
+			logger.Infof("Params Value (string): %s\n", v)
 		case float64: // JSON numbers are parsed as float64 in Go
-			fmt.Printf("Params Value (number): %f\n", v)
+			logger.Infof("Params Value (number): %f\n", v)
 		case map[string]interface{}: // Nested objects
-			fmt.Printf("Params Value (object): %v\n", v)
+			logger.Infof("Params Value (object): %v\n", v)
 		case []interface{}: // Array of values
-			fmt.Printf("Params Value (array): %v\n", v)
+			logger.Infof("Params Value (array): %v\n", v)
 		default:
-			fmt.Printf("Params Value (unknown type): %v\n", v)
+			logger.Infof("Params Value (unknown type): %v\n", v)
 		}
 
 		ExecuteRpc(reqId, Command(payload.Method), payload.Params)
@@ -190,13 +191,13 @@ func ExecuteRpc(requestId string, cmd Command, params interface{}) {
 	resp := make(RpcResponse)
 	switch cmd {
 	case GetStatus:
-		fmt.Println("Status is OK.")
+		logger.Info("Status is OK.")
 		resp["status"] = "ok"
 	case GetTelemetry:
-		fmt.Println("Get telemetry.")
+		logger.Info("Get telemetry.")
 		resp = createTelemetryPayload()
 	case GetPins:
-		fmt.Println("Get pins.")
+		logger.Info("Get pins.")
 		resp["pins"] = gpioCol.ReadPins()
 	case SetPins:
 		if pinMap, ok := params.(map[string]interface{}); ok {
@@ -219,14 +220,14 @@ func ExecuteRpc(requestId string, cmd Command, params interface{}) {
 	case Help:
 		resp["cmds"] = [...]string{string(Help), string(GetStatus), string(GetTelemetry), string(GetPins), string(SetPins), string(SetPin)}
 	default:
-		fmt.Println("Unknown cmd")
+		logger.Warningf("Unknown cmd %s", cmd)
 	}
 
 	token := mqttClient.Publish(config.Telemetry.Server.ResponseTopic+requestId, 0, false, serialize(resp))
 	if token.WaitTimeout(5 * time.Second) {
-		fmt.Printf("RPC Response sent %+v\n", resp)
+		logger.Debug("RPC Response sent %+v\n", resp)
 	} else {
-		fmt.Println("Timeout on response sending")
+		logger.Warningf("Timeout on response sending")
 	}
 
 }

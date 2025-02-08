@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 	cfg "github.com/prutonis/acquisitor/internal/cfg"
+	"github.com/prutonis/acquisitor/pkg/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -82,4 +83,10 @@ func initConfig() {
 		fmt.Println("Unable to decode into struct:", errors.WithStack(err))
 		debug.PrintStack()
 	}
+	fmt.Printf("Config file loaded? '%v'\n", config.Telemetry.Server)
+	logger.Initialize(logger.Config{
+		LogLevel: "info",
+		DevMode:  false,
+		File:     config.Logging.File,
+	})
 }

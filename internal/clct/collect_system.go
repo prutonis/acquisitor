@@ -1,8 +1,7 @@
 package clct
 
 import (
-	"fmt"
-
+	"github.com/prutonis/acquisitor/pkg/logger"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
@@ -29,7 +28,7 @@ func (ac *sysCollector) Init() {
 }
 
 func (ac *sysCollector) Collect() {
-	fmt.Println("Collecting system data")
+	logger.Debugf("Collecting system data")
 	if telemetryData.ResolveChannel(KEY_LOAD) != nil {
 		percentages, err := cpu.Percent(0, false)
 		if err == nil {

@@ -45,7 +45,7 @@ var telemetryData *TelemetryData = &TelemetryData{Data: make(map[string]*Telemet
 
 func (tc *Collector) Init() {
 	for _, c := range tc.Collectors {
-		fmt.Println("Initializing collector: ", c.Name())
+		logger.Infof("Initializing collector: %s", c.Name())
 		c.Init()
 	}
 }

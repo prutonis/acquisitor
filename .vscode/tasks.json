@@ -38,6 +38,22 @@
 					"GOARM":"7"
                 }
             }
-        }
+        },
+		{
+			"label": "Copy acq to rap2",
+			"type": "shell",
+			"command": "scp",
+			"args": [
+			  "-P",
+			  "22222",
+			  "${workspaceFolder}/acq",        // Replace with your local file path
+			  "pi@83.218.207.42:~/acq/acq-new"  // Replace with your remote user, host, and path
+			],
+			"group": {
+			  "kind": "build",
+			  "isDefault": false
+			},
+			"problemMatcher": []
+		  }
 	]
 }

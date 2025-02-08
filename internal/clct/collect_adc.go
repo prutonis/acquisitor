@@ -1,7 +1,6 @@
 package clct
 
 import (
-	"fmt"
 	"math/rand"
 	"strings"
 
@@ -34,19 +33,19 @@ func (ac *adcCollector) Init() {
 		ac.initCollector()
 		if strings.Contains(config.Hardware.Adc.Name, "fake") {
 			// The string contains the substring "fake"
-			fmt.Println("Using fake ADC")
+			logger.Infof("Using fake ADC")
 			ad = FakeAdc("fake")
 			return
 		}
 		var ads adc.AdsOps = adc.NewAds(&config.Hardware.Adc)
 		ad = adc.NewAdc(ads)
 	} else {
-		fmt.Println("ADC disabled")
+		logger.Infof("ADC disabled")
 	}
 }
 
 func (ac *adcCollector) Collect() {
-	fmt.Println("Collecting adc data")
+	logger.Debugf("Collecting adc data")
 	for _, key := range ac.Keys {
 		rawVal, err := ad.ReadValue(int(key.adcInput.Channel))
 		if err == nil {

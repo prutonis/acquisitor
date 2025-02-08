@@ -138,3 +138,6 @@ telemetry:
         source: cam2
       - name: m_cam3
         source: cam3
+
+logging:
+  file: /var/log/acquisitor.log
