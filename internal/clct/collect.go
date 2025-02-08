@@ -127,6 +127,8 @@ func createMqttClient() {
 	opts := mqtt.NewClientOptions().AddBroker(brokerConnectionStr)
 	opts.SetClientID("acquisitor")
 	opts.SetUsername(config.Telemetry.Server.User)
+	opts.SetConnectionLostHandler(connectLostHandler)
+	opts.SetOnConnectHandler(connectHandler)
 	mqttClient = mqtt.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
@@ -141,37 +143,45 @@ type RpcPayload struct {
 }
 
 var messageSubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
-	logger.Infof("Received message: %s from topic: %s\n", msg.Payload(), msg.Topic())
+	logger.Infof("Received message: %s from topic: %s", msg.Payload(), msg.Topic())
 
 	reqId, found := strings.CutPrefix(msg.Topic(), config.Telemetry.Server.SubscribeTopic)
 	if found {
 		var payload RpcPayload
 		err := json.Unmarshal(msg.Payload(), &payload)
 		if err != nil {
-			logger.Errorf("Error parsing JSON payload: %v\n", err)
+			logger.Errorf("Error parsing JSON payload: %v", err)
 			return
 		}
 
 		// Access parsed data
-		logger.Infof("Parsed Payload: %+v\n", payload)
-		logger.Infof("Method: %s, params: %+v\n", payload.Method, payload.Params)
+		logger.Infof("Parsed Payload: %+v", payload)
+		logger.Infof("Method: %s, params: %+v", payload.Method, payload.Params)
 
 		switch v := payload.Params.(type) {
 		case string:
-			logger.Infof("Params Value (string): %s\n", v)
+			logger.Infof("Params Value (string): %s", v)
 		case float64: // JSON numbers are parsed as float64 in Go
-			logger.Infof("Params Value (number): %f\n", v)
+			logger.Infof("Params Value (number): %f", v)
 		case map[string]interface{}: // Nested objects
-			logger.Infof("Params Value (object): %v\n", v)
+			logger.Infof("Params Value (object): %v", v)
 		case []interface{}: // Array of values
-			logger.Infof("Params Value (array): %v\n", v)
+			logger.Infof("Params Value (array): %v", v)
 		default:
-			logger.Infof("Params Value (unknown type): %v\n", v)
+			logger.Infof("Params Value (unknown type): %v", v)
 		}
 
 		ExecuteRpc(reqId, Command(payload.Method), payload.Params)
 	}
 
+}
+
+var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
+	logger.Warningf("Mqtt Client: Connection lost: %v", client.IsConnectionOpen(), err)
+}
+
+var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
+	logger.Debugf("Client connected %v", client.IsConnectionOpen())
 }
 
 type Command string
@@ -225,7 +235,7 @@ func ExecuteRpc(requestId string, cmd Command, params interface{}) {
 
 	token := mqttClient.Publish(config.Telemetry.Server.ResponseTopic+requestId, 0, false, serialize(resp))
 	if token.WaitTimeout(5 * time.Second) {
-		logger.Debug("RPC Response sent %+v\n", resp)
+		logger.Debugf("RPC Response sent %+v", resp)
 	} else {
 		logger.Warningf("Timeout on response sending")
 	}

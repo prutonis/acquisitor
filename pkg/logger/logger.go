@@ -38,7 +38,7 @@ func Initialize(config Config) error {
 		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
 		// Configure lumberjack for log rotation
-		fmt.Printf("Configuring logging with file: '%v'\n", config.File)
+		fmt.Printf("Logs will be write to file: '%v'\n", config.File)
 
 		logWriter := &lumberjack.Logger{
 			Filename:   config.File, // Log file name
@@ -49,8 +49,8 @@ func Initialize(config Config) error {
 		}
 
 		consoleEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
-		fileEncoder := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
-
+		//fileEncoder := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+		fileEncoder := zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
 		// Create core
 		core := zapcore.NewTee(
 			zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel),

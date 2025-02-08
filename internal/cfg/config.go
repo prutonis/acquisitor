@@ -41,7 +41,8 @@ type Telemetry struct {
 }
 
 type Logging struct {
-	File string `yaml:"file"`
+	File  string `yaml:"file"`
+	Level string `yaml:"level"`
 }
 
 type Server struct {

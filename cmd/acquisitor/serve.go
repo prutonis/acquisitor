@@ -8,8 +8,6 @@ import (
 )
 
 func init() {
-	// initConfig reads in config file and ENV variables if set.
-	initConfig()
 	log.Printf("Serve Init called")
 	rootCmd.AddCommand(serveCmd)
 }

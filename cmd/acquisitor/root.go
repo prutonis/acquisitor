@@ -83,10 +83,18 @@ func initConfig() {
 		fmt.Println("Unable to decode into struct:", errors.WithStack(err))
 		debug.PrintStack()
 	}
-	fmt.Printf("Config file loaded? '%v'\n", config.Telemetry.Server)
+	//fmt.Printf("Config file loaded? '%v'\n", config.Telemetry.Server)
+	llevel := "info"
+	if config.Logging.Level != "" {
+		llevel = config.Logging.Level
+	}
+	lfile := "app.log"
+	if config.Logging.File != "" {
+		lfile = config.Logging.File
+	}
 	logger.Initialize(logger.Config{
-		LogLevel: "info",
-		DevMode:  false,
-		File:     config.Logging.File,
+		LogLevel: llevel,
+		DevMode:  true,
+		File:     lfile,
 	})
 }

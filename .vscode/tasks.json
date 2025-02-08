@@ -47,7 +47,7 @@
 			  "-P",
 			  "22222",
 			  "${workspaceFolder}/acq",        // Replace with your local file path
-			  "pi@83.218.207.42:~/acq/acq-new"  // Replace with your remote user, host, and path
+			  "pi@83.218.207.42:/opt/acq/acq"  // Replace with your remote user, host, and path
 			],
 			"group": {
 			  "kind": "build",

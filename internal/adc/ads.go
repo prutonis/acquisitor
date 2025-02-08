@@ -31,7 +31,7 @@ type Ads struct {
 }
 
 func NewAds(adcCfg *cfg.Adc) *Ads {
-	logger.Infof("Using ADC: %v\n", adcCfg)
+	logger.Infof("Using ADC: %v", adcCfg)
 	i2c, err := i2c.NewI2C(uint8(adcCfg.I2cAddr), adcCfg.I2cBus)
 	if err != nil {
 		logger.Fatalf("Cannot initiate I2C", err)
@@ -91,7 +91,7 @@ func NewAds(adcCfg *cfg.Adc) *Ads {
 }
 
 func (ads *Ads) SetConfig(config *cfg.AdcInput) error {
-	//logger.Infof("Setting ADC config: %v\n", config)
+	//logger.Infof("Setting ADC config: %v", config)
 	err := ads.Sensor.SetPgaMode(config.Gain)
 	if err != nil {
 		return err

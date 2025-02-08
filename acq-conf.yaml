@@ -99,3 +99,6 @@ telemetry:
       - name: m_uptime
         source: uptime
 
+logging:
+  file: app1.log
+  level: debug
