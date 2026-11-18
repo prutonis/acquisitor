@@ -35,6 +35,58 @@ hardware:
       - name: cam3
         pin: 231
         default: 1
+  # Solar charge controller, Modbus RTU (manual: ChargeController-modbus.pdf)
+  charger:
+    enabled: true
+    device: /dev/ttyS2   # "fake" = simulator (development, e.g. on Windows)
+    baud: 9600           # 9600 8N1
+    slaveid: 1           # controller address (1..247); 255 = FFH, answers whatever its address is
+    timeout: 1000        # ms
+    maxgap: 2            # registers closer than this are read in one request (0 = only adjacent)
+    # Registers that can be used as `source` by the keys of the "charger" collector.
+    # Only the registers used by a key are read. Fields:
+    #   address: register address
+    #   type:    u16 (default) | i16 | u32 | i32   (32 bit: high word at `address`)
+    #   shift/mask: raw = (value >> shift) & mask   (to extract bytes / bits)
+    registers:
+      # --- live values (0100H-0109H)
+      - {name: soc,             address: 0x0100, mask: 0xFF}           # %
+      - {name: bat_voltage,     address: 0x0101}                       # x0.1 V
+      - {name: charge_current,  address: 0x0102}                       # x0.01 A, controller -> battery
+      - {name: temp_controller, address: 0x0103, shift: 8, mask: 0xFF} # b7 = sign
+      - {name: temp_battery,    address: 0x0103, mask: 0xFF}           # b7 = sign
+      - {name: load_voltage,    address: 0x0104}                       # x0.1 V
+      - {name: load_current,    address: 0x0105}                       # x0.01 A
+      - {name: load_power,      address: 0x0106}                       # W
+      - {name: pv_voltage,      address: 0x0107}                       # x0.1 V
+      - {name: pv_current,      address: 0x0108}                       # x0.01 A
+      - {name: pv_power,        address: 0x0109}                       # W
+      # --- today (010BH-0114H)
+      - {name: bat_vmin_day,    address: 0x010B}                       # x0.1 V
+      - {name: bat_vmax_day,    address: 0x010C}                       # x0.1 V
+      - {name: chg_imax_day,    address: 0x010D}                       # x0.01 A
+      - {name: dis_imax_day,    address: 0x010E}                       # x0.01 A
+      - {name: chg_pmax_day,    address: 0x010F}                       # W
+      - {name: dis_pmax_day,    address: 0x0110}                       # W
+      - {name: chg_ah_day,      address: 0x0111}                       # Ah
+      - {name: dis_ah_day,      address: 0x0112}                       # Ah
+      - {name: gen_day,         address: 0x0113}                       # Wh
+      - {name: cons_day,        address: 0x0114}                       # Wh
+      # --- history (0115H-011FH)
+      - {name: days,            address: 0x0115}
+      - {name: overdischarges,  address: 0x0116}
+      - {name: fullcharges,     address: 0x0117}
+      - {name: chg_ah_total,    address: 0x0118, type: u32}            # Ah
+      - {name: dis_ah_total,    address: 0x011A, type: u32}            # Ah
+      - {name: gen_total,       address: 0x011C, type: u32}            # kWh (manual 4.13)
+      - {name: cons_total,      address: 0x011E, type: u32}            # kWh (manual 4.13)
+      # --- status (0120H-0122H)
+      - {name: load_on,         address: 0x0120, shift: 15, mask: 0x1}   # b15
+      - {name: load_brightness, address: 0x0120, shift: 8, mask: 0x7F}   # b8-b14, %
+      - {name: charge_state,    address: 0x0120, mask: 0xFF}             # low byte
+      # fault bits B31..B0 (0121H = high word); the mask keeps only real faults
+      # (B22 = power supply status and the reserved bits are dropped)
+      - {name: fault,           address: 0x0121, type: u32, mask: 0xFF801AFF}
 
 # // PGA_6_144 = 0 // Full Scale Range = +/- 6.144V
 # // PGA_4_096 = 1 // Full Scale Range = +/- 4.096V
@@ -108,6 +160,70 @@ telemetry:
           source: cam2
         - name: cam3
           source: cam3
+    - name: charger
+      enabled: true
+      interval: 10      # seconds between reads of the controller
+      # key: name = telemetry name, source = register (hardware.charger.registers) or "ok",
+      #      function = optional CEL expression on `raw` (the register value),
+      #      values / bits / empty = optional text mapping of the result
+      keys:
+        # --- live values
+        - {name: soc,       unit: "%", source: soc}                                      # battery state of charge
+        - {name: bat_v,     unit: V,   source: bat_voltage,    function: "raw / 10.0"}   # battery voltage
+        - {name: chg_i,     unit: A,   source: charge_current, function: "raw / 100.0"}  # charging current (controller -> battery)
+        - {name: pv_v,      unit: V,   source: pv_voltage,     function: "raw / 10.0"}   # solar panel voltage
+        - {name: pv_i,      unit: A,   source: pv_current,     function: "raw / 100.0"}  # solar panel current
+        - {name: pv_p,      unit: W,   source: pv_power}                                 # solar panel power
+        - {name: load_v,    unit: V,   source: load_voltage,   function: "raw / 10.0"}   # load output voltage
+        - {name: load_i,    unit: A,   source: load_current,   function: "raw / 100.0"}  # current drawn by the load
+        - {name: load_p,    unit: W,   source: load_power}                               # load power
+        # temperature: bit 7 is the sign, bits 0-6 the value
+        - {name: temp_ctrl, unit: C,   source: temp_controller, function: "raw >= 128.0 ? -(raw - 128.0) : raw"}
+        - {name: temp_bat,  unit: C,   source: temp_battery,    function: "raw >= 128.0 ? -(raw - 128.0) : raw"}
+        # --- status
+        - {name: chg_state,  source: charge_state}                         # 0 off,1 on,2 mppt,3 equalize,4 boost,5 float,6 current limit
+        - name: chg_state_text
+          source: charge_state
+          values: {"0": deactivated, "1": activated, "2": mppt, "3": equalizing, "4": boost, "5": float, "6": current_limit}
+        - {name: load_on,    source: load_on}                              # 1 = load output on
+        - {name: fault,      source: fault}                                # 0 = no fault, otherwise bit mask (manual 4.15)
+        - name: fault_text                                                 # names of the faults, "ok" if none
+          source: fault
+          empty: ok
+          bits:
+            "0": battery_overdischarge
+            "1": battery_overvoltage
+            "2": battery_undervoltage
+            "3": load_short_circuit
+            "4": load_overpower
+            "5": controller_overtemp
+            "6": battery_high_temp_no_charge
+            "7": pv_overpower
+            "9": pv_input_overvoltage
+            "11": pv_workpoint_overvoltage
+            "12": pv_reversed
+            "23": no_battery_detected
+            "24": battery_high_temp_no_discharge
+            "25": battery_low_temp_no_discharge
+            "26": overcharge_protection
+            "27": battery_low_temp_no_charge
+            "28": battery_reversed
+            "29": capacitor_overvoltage
+            "30": probe_damaged
+            "31": load_open_circuit
+        - {name: charger_ok, source: ok}                                   # 1 = controller answers on Modbus
+        # --- today
+        - {name: gen_day,       unit: Wh, source: gen_day}
+        - {name: cons_day,      unit: Wh, source: cons_day}
+        - {name: chg_ah_day,    unit: Ah, source: chg_ah_day}
+        - {name: dis_ah_day,    unit: Ah, source: dis_ah_day}
+        - {name: bat_v_min_day, unit: V,  source: bat_vmin_day, function: "raw / 10.0"}
+        - {name: bat_v_max_day, unit: V,  source: bat_vmax_day, function: "raw / 10.0"}
+        # --- totals
+        - {name: gen_total,  unit: kWh, source: gen_total}
+        - {name: cons_total, unit: kWh, source: cons_total}
+        # more registers are defined in hardware.charger.registers (days, overdischarges,
+        # fullcharges, chg_ah_total, dis_ah_total, *_max_day, load_brightness): add a key for them
 
   pusher:
     enabled: true
@@ -138,6 +254,32 @@ telemetry:
         source: cam2
       - name: m_cam3
         source: cam3
+      # charge controller
+      - {name: m_soc,       source: soc}
+      - {name: m_bat_v,     source: bat_v}
+      - {name: m_chg_i,     source: chg_i}
+      - {name: m_pv_v,      source: pv_v}
+      - {name: m_pv_i,      source: pv_i}
+      - {name: m_pv_p,      source: pv_p}
+      - {name: m_load_v,    source: load_v}
+      - {name: m_load_i,    source: load_i}
+      - {name: m_load_p,    source: load_p}
+      - {name: m_temp_ctrl, source: temp_ctrl}
+      - {name: m_temp_bat,  source: temp_bat}
+      - {name: m_chg_state,      source: chg_state}
+      - {name: m_chg_state_text, source: chg_state_text}
+      - {name: m_load_on,        source: load_on}
+      - {name: m_fault,          source: fault}
+      - {name: m_fault_text,     source: fault_text}
+      - {name: m_charger_ok,     source: charger_ok}
+      - {name: m_gen_day,       source: gen_day}
+      - {name: m_cons_day,      source: cons_day}
+      - {name: m_chg_ah_day,    source: chg_ah_day}
+      - {name: m_dis_ah_day,    source: dis_ah_day}
+      - {name: m_bat_v_min_day, source: bat_v_min_day}
+      - {name: m_bat_v_max_day, source: bat_v_max_day}
+      - {name: m_gen_total,     source: gen_total}
+      - {name: m_cons_total,    source: cons_total}
 
 logging:
   file: /var/log/acquisitor.log

@@ -51,6 +51,9 @@ func (gc *gpioCollector) Init() {
 func (gc *gpioCollector) Collect() {
 	logger.Debugf("Collecting gpio data")
 	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
+	if gpioCol == nil {
+		return
+	}
 	for _, key := range gpioCol.Keys {
 		gp, exists := gc.Pins[key.Source]
 		if exists {
@@ -69,6 +72,9 @@ func (gc *gpioCollector) Name() string {
 func (gc *gpioCollector) ReadPins() map[string]int {
 	var pinMap = make(map[string]int)
 	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
+	if gpioCol == nil {
+		return pinMap
+	}
 	for _, key := range gpioCol.Keys {
 		gp, exists := gc.Pins[key.Source]
 		if exists {
@@ -83,6 +89,9 @@ func (gc *gpioCollector) ReadPins() map[string]int {
 
 func (gc *gpioCollector) SetPins(pins map[string]interface{}) {
 	var gpioCol = config.Telemetry.ResolveCollector(gc.Name())
+	if gpioCol == nil {
+		return
+	}
 	for _, key := range gpioCol.Keys {
 		cp, e1 := pins[key.Name]
 		cpf, e2 := cp.(float64)

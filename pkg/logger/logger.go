@@ -94,7 +94,7 @@ func Fatalf(template string, args ...interface{}) {
 }
 
 func Warningf(template string, args ...interface{}) {
-	log.Fatalf(template, args...)
+	log.Warnf(template, args...)
 }
 
 func Errorf(template string, args ...interface{}) {

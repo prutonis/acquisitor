@@ -29,9 +29,36 @@ type Gpio struct {
 	Pins    []GpioPin `yaml:"pins"`
 }
 
+// Charger is the solar charge controller read over Modbus RTU.
+type Charger struct {
+	Enabled bool   `yaml:"enabled"`
+	Device  string `yaml:"device"`  // serial port, e.g. /dev/ttyS2 ("fake" = simulator)
+	Baud    int    `yaml:"baud"`    // default 9600
+	SlaveId int    `yaml:"slaveid"` // Modbus address 1..247, 255 = "FFH" bypass address (default 1)
+	Timeout int    `yaml:"timeout"` // response timeout in ms (default 1000)
+	// MaxGap: registers closer than this many words are read in one request
+	// (unused words in between are read and ignored). 0 = only adjacent registers.
+	MaxGap    int               `yaml:"maxgap"`
+	Registers []ChargerRegister `yaml:"registers"`
+}
+
+// ChargerRegister describes one value to be read from the controller (function 03).
+//
+//	raw = (word(s) >> shift) & mask
+//
+// Words are big endian; for 32 bit types the high word is at `address`.
+type ChargerRegister struct {
+	Name    string `yaml:"name"`
+	Address int    `yaml:"address"`
+	Type    string `yaml:"type"`  // u16 (default), i16, u32, i32
+	Shift   uint   `yaml:"shift"` // bits to shift right (default 0)
+	Mask    uint32 `yaml:"mask"`  // 0 = no mask. Signed types are applied only without shift/mask
+}
+
 type Hardware struct {
-	Adc  Adc  `yaml:"adc"`
-	Gpio Gpio `yaml:"gpio"`
+	Adc     Adc     `yaml:"adc"`
+	Gpio    Gpio    `yaml:"gpio"`
+	Charger Charger `yaml:"charger"`
 }
 
 type Telemetry struct {
@@ -82,6 +109,13 @@ type CollectorKey struct {
 	Median   bool   `yaml:"median"`
 	Source   string `yaml:"source"`
 	Function string `yaml:"function"`
+	// text mapping (charger collector). Applied on the result of Function:
+	//   values: {"2": mppt}                -> the number becomes a text
+	//   bits:   {"0": overdischarge, ...}  -> comma separated names of the bits set
+	//   empty:  text when no listed bit is set (default "ok")
+	Values map[string]string `yaml:"values"`
+	Bits   map[string]string `yaml:"bits"`
+	Empty  string            `yaml:"empty"`
 }
 
 type Pusher struct {

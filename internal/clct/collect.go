@@ -27,9 +27,10 @@ func Init() {
 var adcCol adcCollector = adcCollector{}
 var sysCol sysCollector = sysCollector("system")
 var gpioCol gpioCollector = gpioCollector{}
+var chargerCol chargerCollector = chargerCollector{}
 
 func resolveCollectors(tc *Collector) {
-	tc.Collectors = append(tc.Collectors, &adcCol, &sysCol, &gpioCol)
+	tc.Collectors = append(tc.Collectors, &adcCol, &sysCol, &gpioCol, &chargerCol)
 }
 
 func Collect() {
@@ -37,15 +38,18 @@ func Collect() {
 	if ad != nil {
 		defer ad.Close()
 	}
+	defer chargerCol.Close()
 	defer mqttClient.Disconnect(250)
 
 	sendTicker := time.NewTicker(time.Second * time.Duration(config.Telemetry.Pusher.Interval))
 	adcColConf := config.Telemetry.ResolveCollector("adc")
 	sysColConf := config.Telemetry.ResolveCollector("system")
 	gpioColConf := config.Telemetry.ResolveCollector("gpio")
+	chargerColConf := config.Telemetry.ResolveCollector(COLLECTOR_NAME_CHARGER)
 	var adcColTicker *time.Ticker = createCollectorTicker(adcColConf)
 	var sysColTicker *time.Ticker = createCollectorTicker(sysColConf)
 	var gpioColTicker *time.Ticker = createCollectorTicker(gpioColConf)
+	var chargerColTicker *time.Ticker = createCollectorTicker(chargerColConf)
 	for {
 		select {
 		case <-adcColTicker.C:
@@ -54,6 +58,8 @@ func Collect() {
 			sysCol.Collect()
 		case <-gpioColTicker.C:
 			gpioCol.Collect()
+		case <-chargerColTicker.C:
+			chargerCol.Collect()
 		case <-sendTicker.C:
 			sendTelemetry()
 		}
@@ -61,7 +67,7 @@ func Collect() {
 }
 
 func createCollectorTicker(collectorCfg *cfg.Collector) *time.Ticker {
-	if collectorCfg != nil {
+	if collectorCfg != nil && collectorCfg.Interval > 0 {
 		return time.NewTicker(time.Second * time.Duration(collectorCfg.Interval))
 	} else {
 		return time.NewTicker(time.Hour * time.Duration(1000000))
@@ -73,10 +79,12 @@ func sendTelemetry() {
 	logger.Info("Sending telemetry: ", payload)
 	go func() {
 		token := mqttClient.Publish(config.Telemetry.Server.PublishTopic, 0, false, payload)
-		if token.WaitTimeout(5 * time.Second) {
-			logger.Debug("Telemetry sent ", payload)
-		} else {
+		if !token.WaitTimeout(5 * time.Second) {
 			logger.Info("Timeout on telemetry sending")
+		} else if err := token.Error(); err != nil {
+			logger.Errorf("Telemetry not sent: %v", err)
+		} else {
+			logger.Debug("Telemetry sent ", payload)
 		}
 	}()
 }
@@ -87,9 +95,11 @@ func createTelemetryPayload() map[string]interface{} {
 
 	for _, cc := range config.Telemetry.Pusher.Keys {
 		c := telemetryData.Data[cc.Source]
-		if c != nil {
+		// Value == nil: channel exists but has no (valid) value yet, e.g. the
+		// charge controller does not answer. Do not publish a fake 0.
+		if c != nil && c.Value != nil {
 			if c.isMedianCalculable() {
-				payload[c.Name] = roundUp(c.GetMedianValue(), precision)
+				payload[cc.Name] = roundUp(c.GetMedianValue(), precision)
 			} else {
 				switch c.Type {
 				case TYPE_FLOAT:
@@ -127,14 +137,15 @@ func createMqttClient() {
 	opts := mqtt.NewClientOptions().AddBroker(brokerConnectionStr)
 	opts.SetClientID("acquisitor")
 	opts.SetUsername(config.Telemetry.Server.User)
+	opts.SetAutoReconnect(true)
+	opts.SetMaxReconnectInterval(30 * time.Second) // paho default is 10 minutes
 	opts.SetConnectionLostHandler(connectLostHandler)
 	opts.SetOnConnectHandler(connectHandler)
 	mqttClient = mqtt.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
-	st := config.Telemetry.Server.SubscribeTopic + "+"
-	mqttClient.Subscribe(st, 1, messageSubHandler)
+	// the RPC subscription is (re)done in connectHandler, on every (re)connect
 }
 
 type RpcPayload struct {
@@ -177,11 +188,17 @@ var messageSubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 }
 
 var connectLostHandler mqtt.ConnectionLostHandler = func(client mqtt.Client, err error) {
-	logger.Warningf("Mqtt Client: Connection lost: %v", client.IsConnectionOpen(), err)
+	logger.Warningf("Mqtt Client: Connection lost: %v (reconnecting)", err)
 }
 
 var connectHandler mqtt.OnConnectHandler = func(client mqtt.Client) {
 	logger.Debugf("Client connected %v", client.IsConnectionOpen())
+	// the clean session is dropped by the broker on disconnect, so subscribe again
+	st := config.Telemetry.Server.SubscribeTopic + "+"
+	token := client.Subscribe(st, 1, messageSubHandler)
+	if !token.WaitTimeout(5*time.Second) || token.Error() != nil {
+		logger.Errorf("Mqtt Client: cannot subscribe to %s: %v", st, token.Error())
+	}
 }
 
 type Command string
